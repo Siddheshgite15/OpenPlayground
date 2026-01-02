@@ -158,7 +158,8 @@ function renderPaginationControls(totalItems) {
     paginationContainer.innerHTML = '';
     const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-    if (totalPages <= 1) return;
+    // Always render controls, just disable them if not needed
+    // if (totalPages <= 1) return; <--- REMOVED THIS LINE
 
     // Previous Button
     const prevBtn = document.createElement('button');
