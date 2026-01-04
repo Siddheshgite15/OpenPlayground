@@ -31,7 +31,33 @@
 			<form id="bmiForm" class="form" novalidate>
 				<div class="input-row">
 					<div class="input-group">
-						<label for="weightInput" class="input-label">Weight</label>
+						<label class="input-label">Gender</label>
+						<div class="gender-toggle">
+							<button id="maleBtn" type="button" class="gender-btn active">
+								Male
+							</button>
+							<button id="femaleBtn" type="button" class="gender-btn">
+								Female
+							</button>
+						</div>
+					</div>
+
+					<div class="input-group">
+						<label for="ageInput" class="input-label">Age</label>
+						<div class="input-wrapper">
+							<input id="ageInput" type="number" step="1" min="1" max="120" placeholder="Enter age"
+								class="input" aria-describedby="ageError" aria-required="true" aria-invalid="false"
+								autocomplete="off" list="none">
+							<div class="input-arrows">
+								<div class="arrow-btn" id="ageUp">▲</div>
+								<div class="arrow-btn" id="ageDown">▼</div>
+							</div>
+						</div>
+						<div id="ageError" class="field-error" role="alert"></div>
+					</div>
+
+					<div class="input-group">
+						<label for="weightInput" id="weightLabel" class="input-label">Weight</label>
 						<div class="input-wrapper">
 							<input id="weightInput" type="number" step="0.1" placeholder="Enter weight" class="input"
 								aria-describedby="weightError" aria-required="true" aria-invalid="false">
@@ -44,7 +70,7 @@
 					</div>
 
 					<div class="input-group">
-						<label for="heightInput" class="input-label">Height</label>
+						<label for="heightInput" id="heightLabel" class="input-label">Height</label>
 						<div class="input-wrapper">
 							<input id="heightInput" type="number" step="0.1" placeholder="Enter height" class="input"
 								aria-describedby="heightError" aria-required="true" aria-invalid="false">

@@ -187,6 +187,11 @@ body {
     transform: scale(0.95);
 }
 
+.input.error::placeholder {
+    color: rgba(239, 68, 68, 0.5);
+    opacity: 1;
+}
+
 .input::placeholder {
     color: rgba(255, 255, 255, 0.4);
 }
@@ -206,6 +211,54 @@ body {
 .input.success {
     border-color: #10b981;
     background: rgba(16, 185, 129, 0.1);
+}
+
+.gender-toggle {
+    display: flex;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.gender-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.gender-label {
+    font-weight: 600;
+    color: inherit;
+}
+
+.gender-btn.active {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.gender-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.unit-badge {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    margin-left: 4px;
 }
 
 .field-error {

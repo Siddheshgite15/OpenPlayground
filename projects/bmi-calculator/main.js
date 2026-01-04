@@ -1,11 +1,13 @@
 class BMICalculator {
 	constructor() {
 		this.isMetric = true;
+		this.gender = 'male';
 		this.history = this.loadHistory();
 		this.chart = null;
 		this.validationState = {
 			weight: false,
-			height: false
+			height: false,
+			age: false
 		};
 		this.initializeElements();
 		this.bindEvents();
@@ -18,8 +20,10 @@ class BMICalculator {
 		this.form = document.getElementById('bmiForm');
 		this.weightInput = document.getElementById('weightInput');
 		this.heightInput = document.getElementById('heightInput');
+		this.ageInput = document.getElementById('ageInput');
 		this.weightError = document.getElementById('weightError');
 		this.heightError = document.getElementById('heightError');
+		this.ageError = document.getElementById('ageError');
 		this.result = document.getElementById('result');
 		this.bmiDisplay = document.getElementById('bmiDisplay');
 		this.bmiValue = document.getElementById('bmiValue');
@@ -38,6 +42,12 @@ class BMICalculator {
 		this.weightDown = document.getElementById('weightDown');
 		this.heightUp = document.getElementById('heightUp');
 		this.heightDown = document.getElementById('heightDown');
+		this.ageUp = document.getElementById('ageUp');
+		this.ageDown = document.getElementById('ageDown');
+		this.maleBtn = document.getElementById('maleBtn');
+		this.femaleBtn = document.getElementById('femaleBtn');
+		this.weightLabel = document.getElementById('weightLabel');
+		this.heightLabel = document.getElementById('heightLabel');
 	}
 
 	bindEvents() {
@@ -52,16 +62,32 @@ class BMICalculator {
 		this.weightDown.addEventListener('click', () => this.incrementValue('weight', -0.1));
 		this.heightUp.addEventListener('click', () => this.incrementValue('height', 0.1));
 		this.heightDown.addEventListener('click', () => this.incrementValue('height', -0.1));
+		this.ageUp.addEventListener('click', () => this.incrementValue('age', 1));
+		this.ageDown.addEventListener('click', () => this.incrementValue('age', -1));
 
 		this.weightInput.addEventListener('input', () => this.validateField('weight'));
 		this.heightInput.addEventListener('input', () => this.validateField('height'));
+		this.ageInput.addEventListener('input', () => this.validateField('age'));
+
+		this.maleBtn.addEventListener('click', () => this.toggleGender('male'));
+		this.femaleBtn.addEventListener('click', () => this.toggleGender('female'));
 	}
 
 	incrementValue(fieldType, step) {
-		const input = fieldType === 'weight' ? this.weightInput : this.heightInput;
+		let input;
+		if (fieldType === 'weight') input = this.weightInput;
+		else if (fieldType === 'height') input = this.heightInput;
+		else if (fieldType === 'age') input = this.ageInput;
+
 		const currentValue = parseFloat(input.value) || 0;
 		const newValue = Math.max(0, currentValue + step);
-		input.value = newValue.toFixed(1);
+
+		if (fieldType === 'age') {
+			input.value = Math.round(newValue);
+		} else {
+			input.value = newValue.toFixed(1);
+		}
+
 		input.dispatchEvent(new Event('input'));
 		this.validateField(fieldType);
 	}
@@ -70,23 +96,39 @@ class BMICalculator {
 		this.isMetric = isMetric;
 		this.metricBtn.classList.toggle('active', isMetric);
 		this.imperialBtn.classList.toggle('active', !isMetric);
-		this.updatePlaceholders();
+		this.updateLabelsAndPlaceholders();
 		this.clearForm();
+		this.hideResult();
+	}
+
+	toggleGender(gender) {
+		this.gender = gender;
+		this.maleBtn.classList.toggle('active', gender === 'male');
+		this.femaleBtn.classList.toggle('active', gender === 'female');
+	}
+
+	updateLabelsAndPlaceholders() {
+		if (this.isMetric) {
+			this.weightLabel.innerHTML = 'Weight <span class="unit-badge">(kg)</span>';
+			this.heightLabel.innerHTML = 'Height <span class="unit-badge">(cm)</span>';
+			this.weightInput.placeholder = 'Enter weight';
+			this.heightInput.placeholder = 'Enter height';
+		} else {
+			this.weightLabel.innerHTML = 'Weight <span class="unit-badge">(lbs)</span>';
+			this.heightLabel.innerHTML = 'Height <span class="unit-badge">(in)</span>';
+			this.weightInput.placeholder = 'Enter weight';
+			this.heightInput.placeholder = 'Enter height';
+		}
 	}
 
 	updatePlaceholders() {
-		if (this.isMetric) {
-			this.weightInput.placeholder = 'Enter weight in kg';
-			this.heightInput.placeholder = 'Enter height in cm';
-		} else {
-			this.weightInput.placeholder = 'Enter weight in lbs';
-			this.heightInput.placeholder = 'Enter height in inches';
-		}
+		this.updateLabelsAndPlaceholders();
 	}
 
 	clearForm() {
 		this.weightInput.value = '';
 		this.heightInput.value = '';
+		this.ageInput.value = '';
 		this.clearValidation();
 		this.hideResult();
 		this.updateSubmitButton();
@@ -97,25 +139,38 @@ class BMICalculator {
 
 		const weightValid = this.validateField('weight', true);
 		const heightValid = this.validateField('height', true);
+		const ageValid = this.validateField('age', true);
 
-		if (!weightValid || !heightValid) {
+		if (!weightValid || !heightValid || !ageValid) {
 			this.focusFirstInvalid();
 			return;
 		}
 
 		const weight = parseFloat(this.weightInput.value);
 		const height = parseFloat(this.heightInput.value);
+		const age = parseInt(this.ageInput.value);
 
 		const bmi = this.calculateBMI(weight, height);
-		const category = this.getBMICategory(bmi);
+		const category = this.getBMICategory(bmi, age, this.gender);
 
-		this.displayResult(bmi, category);
-		this.saveToHistory(weight, height, bmi, category);
+		this.displayResult(bmi, category, age, this.gender);
+		this.saveToHistory(weight, height, age, this.gender, bmi, category);
 	}
 
 	validateField(fieldType, forceShowError = false) {
-		const input = fieldType === 'weight' ? this.weightInput : this.heightInput;
-		const errorElement = fieldType === 'weight' ? this.weightError : this.heightError;
+		let input, errorElement;
+
+		if (fieldType === 'weight') {
+			input = this.weightInput;
+			errorElement = this.weightError;
+		} else if (fieldType === 'height') {
+			input = this.heightInput;
+			errorElement = this.heightError;
+		} else if (fieldType === 'age') {
+			input = this.ageInput;
+			errorElement = this.ageError;
+		}
+
 		const value = input.value.trim();
 
 		input.classList.remove('error', 'success');
@@ -125,10 +180,11 @@ class BMICalculator {
 
 		if (value === '') {
 			if (forceShowError) {
+				let fieldName = fieldType === 'weight' ? 'weight' : fieldType === 'height' ? 'height' : 'age';
 				this.setFieldError(
 					input,
 					errorElement,
-					`${fieldType === 'weight' ? 'Please enter your weight.' : 'Please enter your height.'}`
+					`Please enter your ${fieldName}.`
 				);
 			}
 			this.validationState[fieldType] = false;
@@ -137,15 +193,32 @@ class BMICalculator {
 		}
 
 		const numValue = parseFloat(value);
-		const unit = fieldType === 'weight'
-			? (this.isMetric ? 'kg' : 'lbs')
-			: (this.isMetric ? 'cm' : 'inches');
 
-		if (numValue <= 0) {
+		if (isNaN(numValue)) {
 			this.setFieldError(
 				input,
 				errorElement,
-				`${fieldType === 'weight' ? 'Weight' : 'Height'} must be greater than 0 ${unit}.`
+				`Please enter a valid number.`
+			);
+			this.validationState[fieldType] = false;
+			this.updateSubmitButton();
+			return false;
+		}
+
+		if (numValue <= 0) {
+			let unit = '';
+			if (fieldType === 'weight') {
+				unit = this.isMetric ? 'kg' : 'lbs';
+			} else if (fieldType === 'height') {
+				unit = this.isMetric ? 'cm' : 'inches';
+			} else {
+				unit = 'years';
+			}
+
+			this.setFieldError(
+				input,
+				errorElement,
+				`${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} must be greater than 0${unit ? ' ' + unit : ''}.`
 			);
 			this.validationState[fieldType] = false;
 			this.updateSubmitButton();
@@ -154,8 +227,10 @@ class BMICalculator {
 
 		if (fieldType === 'weight') {
 			return this.validateWeight(numValue, input, errorElement);
-		} else {
+		} else if (fieldType === 'height') {
 			return this.validateHeight(numValue, input, errorElement);
+		} else if (fieldType === 'age') {
+			return this.validateAge(numValue, input, errorElement);
 		}
 	}
 
@@ -168,7 +243,7 @@ class BMICalculator {
 			this.setFieldError(
 				input,
 				errorElement,
-				`Entered weight looks too low (minimum ${minWeight} ${unit}).`
+				`Weight looks too low (minimum ${minWeight} ${unit}).`
 			);
 			this.validationState.weight = false;
 			this.updateSubmitButton();
@@ -179,7 +254,7 @@ class BMICalculator {
 			this.setFieldError(
 				input,
 				errorElement,
-				`Entered weight looks too high (maximum ${maxWeight} ${unit}).`
+				`Weight looks too high (maximum ${maxWeight} ${unit}).`
 			);
 			this.validationState.weight = false;
 			this.updateSubmitButton();
@@ -201,7 +276,7 @@ class BMICalculator {
 			this.setFieldError(
 				input,
 				errorElement,
-				`Entered height looks too short (minimum ${minHeight} ${unit}).`
+				`Height looks too short (minimum ${minHeight} ${unit}).`
 			);
 			this.validationState.height = false;
 			this.updateSubmitButton();
@@ -212,7 +287,7 @@ class BMICalculator {
 			this.setFieldError(
 				input,
 				errorElement,
-				`Entered height looks too tall (maximum ${maxHeight} ${unit}).`
+				`Height looks too tall (maximum ${maxHeight} ${unit}).`
 			);
 			this.validationState.height = false;
 			this.updateSubmitButton();
@@ -221,6 +296,46 @@ class BMICalculator {
 
 		this.setFieldSuccess(input);
 		this.validationState.height = true;
+		this.updateSubmitButton();
+		return true;
+	}
+
+	validateAge(age, input, errorElement) {
+		if (!Number.isInteger(age)) {
+			this.setFieldError(
+				input,
+				errorElement,
+				'Age must be a whole number.'
+			);
+			this.validationState.age = false;
+			this.updateSubmitButton();
+			return false;
+		}
+
+		if (age < 18) {
+			this.setFieldError(
+				input,
+				errorElement,
+				'Age must be greater than 17 years.'
+			);
+			this.validationState.age = false;
+			this.updateSubmitButton();
+			return false;
+		}
+
+		if (age > 120) {
+			this.setFieldError(
+				input,
+				errorElement,
+				'Age must be less than 120 years.'
+			);
+			this.validationState.age = false;
+			this.updateSubmitButton();
+			return false;
+		}
+
+		this.setFieldSuccess(input);
+		this.validationState.age = true;
 		this.updateSubmitButton();
 		return true;
 	}
@@ -247,17 +362,21 @@ class BMICalculator {
 	clearValidation() {
 		this.weightInput.classList.remove('error', 'success');
 		this.heightInput.classList.remove('error', 'success');
+		this.ageInput.classList.remove('error', 'success');
 		this.weightError.classList.remove('show');
 		this.heightError.classList.remove('show');
+		this.ageError.classList.remove('show');
 		this.weightError.textContent = '';
 		this.heightError.textContent = '';
+		this.ageError.textContent = '';
 		this.weightInput.setAttribute('aria-invalid', 'false');
 		this.heightInput.setAttribute('aria-invalid', 'false');
-		this.validationState = { weight: false, height: false };
+		this.ageInput.setAttribute('aria-invalid', 'false');
+		this.validationState = { weight: false, height: false, age: false };
 	}
 
 	updateSubmitButton() {
-		const isValid = this.validationState.weight && this.validationState.height;
+		const isValid = this.validationState.weight && this.validationState.height && this.validationState.age;
 		this.submitBtn.disabled = !isValid;
 	}
 
@@ -275,7 +394,13 @@ class BMICalculator {
 		return weightKg / (heightM * heightM);
 	}
 
-	getBMICategory(bmi) {
+	getBMICategory(bmi, age, gender) {
+		let adjustedBMI = bmi;
+
+		if (age > 65) {
+			adjustedBMI = bmi - 0.5;
+		}
+
 		const categories = [
 			{
 				name: 'Severely Underweight',
@@ -299,7 +424,7 @@ class BMICalculator {
 				class: 'bmi-healthy',
 				historyClass: 'healthy',
 				range: '18.5 ≤ BMI < 25.0',
-				advice: 'Great. Maintain a balanced diet and regular activity.'
+				advice: 'Great! Maintain a balanced diet and regular activity.'
 			},
 			{
 				name: 'Overweight',
@@ -327,24 +452,34 @@ class BMICalculator {
 			}
 		];
 
-		return categories.find(c => bmi >= c.min && bmi < c.max);
+		return categories.find(c => adjustedBMI >= c.min && adjustedBMI < c.max);
 	}
 
-	displayResult(bmi, category) {
+	displayResult(bmi, category, age, gender) {
 		this.bmiValue.textContent = bmi.toFixed(1);
 		this.bmiCategory.textContent = category.name;
 		this.bmiRange.textContent = category.range;
-		this.bmiAdvice.textContent = category.advice;
+
+		let advice = category.advice;
+		if (age < 18) {
+			advice += ' (Consult a pediatrician for accurate interpretation for your age.)';
+		} else if (age > 65) {
+			advice += ' (BMI interpretation may vary for seniors.)';
+		}
+
+		this.bmiAdvice.textContent = advice;
 		this.bmiDisplay.className = `bmi-display ${category.class}`;
 		this.result.classList.add('show');
 	}
 
-	saveToHistory(weight, height, bmi, category) {
+	saveToHistory(weight, height, age, gender, bmi, category) {
 		const entry = {
 			id: Date.now(),
 			date: new Date(),
 			weight: weight,
 			height: height,
+			age: age,
+			gender: gender,
 			bmi: bmi.toFixed(1),
 			category: category.name,
 			categoryClass: category.historyClass,
@@ -405,21 +540,24 @@ class BMICalculator {
 				minute: '2-digit'
 			});
 
+			const genderLabel = entry.gender === 'male' ? 'Male' : 'Female';
+
+			const ageText = entry.age ? ` • ${entry.age}y` : '';
+
 			return `
-                <div class="history-item ${entry.categoryClass}">
-                    <div class="history-content">
-                        <div class="history-info">
-                            <div class="history-main">BMI: ${entry.bmi}</div>
-                            <div class="history-category ${entry.categoryClass}">${entry.category}</div>
-                            <div class="history-details">
-                                ${entry.weight}${entry.unit === 'metric' ? 'kg' : 'lbs'} • 
-                                ${entry.height}${entry.unit === 'metric' ? 'cm' : 'in'}
-                            </div>
-                        </div>
-                        <div class="history-date">${formattedDate}</div>
-                    </div>
-                </div>
-            `;
+			<div class="history-item ${entry.categoryClass}">
+				<div class="history-content">
+					<div class="history-info">
+						<div class="history-main">BMI: ${entry.bmi}</div>
+						<div class="history-category ${entry.categoryClass}">${entry.category}</div>
+						<div class="history-details">
+							${genderLabel}${ageText} • ${entry.weight}${entry.unit === 'metric' ? 'kg' : 'lbs'} • ${entry.height}${entry.unit === 'metric' ? 'cm' : 'in'}
+						</div>
+					</div>
+					<div class="history-date">${formattedDate}</div>
+				</div>
+			</div>
+		`;
 		}).join('');
 	}
 
